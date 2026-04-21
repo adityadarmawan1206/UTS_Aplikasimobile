@@ -2,16 +2,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart'; // File ini dihasilkan oleh FlutterFire CLI
-
-// Import halaman-halaman (nanti kamu buat file-filenya)
-// import 'pages/login_page.dart';
-// import 'pages/register_page.dart';
-// import 'pages/verify_email_page.dart';
-// import 'pages/dashboard_page.dart';
+import 'login_page.dart';
+import 'register_page.dart';
+//import 'pages/verify_email_page.dart'; // Aktifkan import ini
+//import 'pages/dashboard_page.dart';    // Aktifkan import ini
 
 void main() async {
+  // Wajib dipanggil sebelum Firebase.initializeApp
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inisialisasi Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -24,7 +26,16 @@ class MyApp extends StatelessWidget {
       title: 'E-Commerce App UTS UAS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      // AuthWrapper akan menentukan halaman mana yang muncul saat app dibuka
       home: const AuthWrapper(),
+
+      // Definisikan Routes agar navigasi lebih mudah
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
+        // '/dashboard': (context) => const DashboardPage(),
+        //'/verify-email': (context) => const VerifyEmailPage(),
+      },
     );
   }
 }
@@ -34,55 +45,34 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // StreamBuilder ini memantau status login user secara real-time
+    // StreamBuilder memantau perubahan status login (Login, Logout, Session Expired)
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Jika sedang loading koneksi ke Firebase
+        // 1. Tampilkan loading jika Firebase sedang mengecek sesi
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Jika user sudah login
+        // 2. Jika user sudah login (Ada data user)
         if (snapshot.hasData) {
           final user = snapshot.data!;
 
           // Cek apakah email sudah diverifikasi
+          // Catatan: Anda perlu memanggil user.reload() di halaman verifikasi
+          // untuk mengupdate status emailVerified ini.
           if (user.emailVerified) {
-            return const DashboardPage(); // Ganti ke halaman Dashboard kamu
+            //return const DashboardPage();
           } else {
-            return const VerifyEmailPage(); // Ganti ke halaman Verifikasi kamu
+            //return const VerifyEmailPage();
           }
         }
 
-        // Jika belum login, arahkan ke Login
-        return const LoginPage(); // Ganti ke halaman Login kamu
+        // 3. Jika user belum login, tampilkan halaman Login
+        return const LoginPage();
       },
     );
   }
-}
-
-// --- PLACEHOLDER HALAMAN (Hapus jika sudah buat file terpisah) ---
-
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text("Halaman Login")));
-}
-
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text("Halaman Dashboard")));
-}
-
-class VerifyEmailPage extends StatelessWidget {
-  const VerifyEmailPage({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text("Halaman Verifikasi Email")));
 }

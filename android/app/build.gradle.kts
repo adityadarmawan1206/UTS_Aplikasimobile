@@ -1,10 +1,14 @@
 plugins {
-    id("com.ecommerce")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") version "4.4.4" apply false
+    // 1. Android Application harus yang pertama
     id("com.android.application")
+    
+    // 2. Kotlin
+    id("kotlin-android")
+    
+    // 3. Flutter Plugin
+    id("dev.flutter.flutter-gradle-plugin")
+    
+    // 4. Google Services (Cukup satu baris ini saja, TANPA 'version' atau 'apply false')
     id("com.google.gms.google-services")
 }
 
@@ -23,10 +27,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -35,8 +36,6 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -45,16 +44,11 @@ android {
 flutter {
     source = "../.."
 }
+
 dependencies {
-  // Import the Firebase BoM
-  implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1")) // Versi stabil terbaru saat ini
 
-
-  // TODO: Add the dependencies for Firebase products you want to use
-  // When using the BoM, don't specify versions in Firebase dependencies
-  implementation("com.google.firebase:firebase-analytics")
-
-
-  // Add the dependencies for any other desired Firebase products
-  // https://firebase.google.com/docs/android/setup#available-libraries
+    // Firebase Analytics
+    implementation("com.google.firebase:firebase-analytics")
 }
