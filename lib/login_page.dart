@@ -158,35 +158,27 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                 ),
+
+                // ... kode bagian atas tetap sama ...
                 const SizedBox(height: 20),
 
-                // Tombol Pindah ke Halaman Register
+                // Tombol Pindah ke Halaman Register (VERSI PERBAIKAN)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Belum punya akun? "),
                     GestureDetector(
                       onTap: () {
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            "Daftar",
-                            style: TextStyle(
-                              color: Colors.blueAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        // Navigasi ke RegisterPage
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterPage(),
                           ),
                         );
                       },
                       child: const Text(
-                        "Daftar",
+                        "Daftar Sekarang",
                         style: TextStyle(
                           color: Colors.blueAccent,
                           fontWeight: FontWeight.bold,

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart'; // File ini dihasilkan oleh FlutterFire CLI
 import 'login_page.dart';
 import 'register_page.dart';
-//import 'pages/verify_email_page.dart'; // Aktifkan import ini
-//import 'pages/dashboard_page.dart';    // Aktifkan import ini
+import 'verify_email_page.dart'; // Aktifkan import ini
+import 'dashboard_page.dart'; // Aktifkan import ini
 
 void main() async {
   // Wajib dipanggil sebelum Firebase.initializeApp
@@ -33,8 +33,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        // '/dashboard': (context) => const DashboardPage(),
-        //'/verify-email': (context) => const VerifyEmailPage(),
+        '/dashboard': (context) => const DashboardPage(),
+        '/verify-email': (context) => const VerifyEmailPage(),
       },
     );
   }
@@ -45,32 +45,29 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // StreamBuilder memantau perubahan status login (Login, Logout, Session Expired)
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // 1. Tampilkan loading jika Firebase sedang mengecek sesi
+        // 1. Loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // 2. Jika user sudah login (Ada data user)
+        // 2. Jika user sudah login (snapshot memiliki data)
         if (snapshot.hasData) {
           final user = snapshot.data!;
 
-          // Cek apakah email sudah diverifikasi
-          // Catatan: Anda perlu memanggil user.reload() di halaman verifikasi
-          // untuk mengupdate status emailVerified ini.
+          // AKTIFKAN KEMBALI LOGIKA INI:
           if (user.emailVerified) {
-            //return const DashboardPage();
+            return const DashboardPage(); // Jika sudah verif, ke Dashboard
           } else {
-            //return const VerifyEmailPage();
+            return const VerifyEmailPage(); // Jika belum verif, ke halaman verifikasi
           }
         }
 
-        // 3. Jika user belum login, tampilkan halaman Login
+        // 3. Jika user tidak login (snapshot kosong/null)
         return const LoginPage();
       },
     );

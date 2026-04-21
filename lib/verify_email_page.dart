@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dashboard_page.dart'; // Wajib di-import agar bisa langsung pindah halaman
 
 class VerifyEmailPage extends StatefulWidget {
   const VerifyEmailPage({super.key});
@@ -40,13 +41,24 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   // Fungsi untuk mengecek status verifikasi di server Firebase
   Future checkEmailVerified() async {
-    await FirebaseAuth.instance.currentUser!.reload();
+    try {
+      // PAKSA Firebase untuk mengambil data terbaru dari server
+      await FirebaseAuth.instance.currentUser?.reload();
 
-    setState(() {
-      isEmailVerified = FirebaseAuth.instance.currentUser!.emailVerified;
-    });
+      setState(() {
+        // Ambil status terbaru setelah reload
+        isEmailVerified = FirebaseAuth.instance.currentUser!.emailVerified;
+      });
 
-    if (isEmailVerified) timer?.cancel();
+      if (isEmailVerified) {
+        timer?.cancel();
+        // Karena main.dart kadang lambat merespon, kita langsung atur
+        // pergerakan UI di bagian build() di bawah.
+      }
+    } catch (e) {
+      // Cegah aplikasi crash (layar merah) jika koneksi internet terputus
+      debugPrint("Menunggu jaringan / Gagal reload: $e");
+    }
   }
 
   // Fungsi untuk mengirim ulang email verifikasi
@@ -71,9 +83,12 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Jika sudah verifikasi, halaman ini secara otomatis akan tertutup
-    // karena logika di AuthWrapper (main.dart) kamu akan mengarahkan ke Dashboard.
+    // JIKA SUDAH TERVERIFIKASI, LANGSUNG TAMPILKAN DASHBOARD
+    if (isEmailVerified) {
+      return const DashboardPage();
+    }
 
+    // JIKA BELUM, TAMPILKAN HALAMAN INSTRUKSI
     return Scaffold(
       appBar: AppBar(title: const Text('Verifikasi Email'), centerTitle: true),
       body: Padding(
@@ -94,6 +109,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
+
+            // Tombol Kirim Ulang Email
             ElevatedButton.icon(
               onPressed: canResendEmail ? sendVerificationEmail : null,
               icon: const Icon(Icons.email),
@@ -102,7 +119,22 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 minimumSize: const Size.fromHeight(50),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // Tombol Manual Cek Verifikasi (Backup)
+            ElevatedButton.icon(
+              onPressed: checkEmailVerified,
+              icon: const Icon(Icons.check_circle_outline),
+              label: const Text('Saya Sudah Verifikasi'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
             const SizedBox(height: 8),
+
+            // Tombol Batal
             TextButton(
               onPressed: () => FirebaseAuth.instance.signOut(),
               child: const Text('Batal & Keluar'),

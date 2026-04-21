@@ -61,8 +61,9 @@ class _RegisterPageState extends State<RegisterPage> {
             duration: Duration(seconds: 4),
           ),
         );
-        // Kembali ke halaman Login agar user bisa login menggunakan akun baru
-        Navigator.pop(context);
+
+        // Menutup halaman RegisterPage agar halaman VerifyEmailPage (dari AuthWrapper) terlihat
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } on FirebaseAuthException catch (e) {
       // 5. Menangani error dari Firebase
