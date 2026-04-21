@@ -14,48 +14,42 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  // Fungsi Terintegrasi Firebase untuk Login
   Future<void> _login() async {
-    // 1. Validasi input tidak boleh kosong
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email dan Password tidak boleh kosong!")),
-      );
+      _showErrorSnackBar("Email dan Password tidak boleh kosong!");
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // 2. Mengirim data login ke Firebase
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      // Catatan Penting: Jika sukses, kita tidak perlu menulis kode pindah halaman di sini.
-      // File main.dart (AuthWrapper) akan otomatis mendeteksi bahwa user sudah login
-      // dan langsung memindahkan layar ke Dashboard atau Halaman Verifikasi.
     } on FirebaseAuthException catch (e) {
-      // 3. Menangani error dari Firebase (misal password salah)
       String errorMessage = "Terjadi kesalahan. Silakan coba lagi.";
       if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
         errorMessage = "Email atau Password salah.";
       } else if (e.code == 'invalid-email') {
         errorMessage = "Format email tidak valid.";
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
-      );
+      _showErrorSnackBar(errorMessage);
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Membersihkan controller agar tidak bocor memori (memory leak)
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -66,130 +60,211 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo atau Icon Aplikasi
-                const Icon(
-                  Icons.shopping_bag,
-                  size: 100,
-                  color: Colors.blueAccent,
-                ),
-                const SizedBox(height: 20),
+      body: Stack(
+        children: [
+          // 1. Background Image dengan Overlay Gelap
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: NetworkImage("https://i.ibb.co.com/W4qkjmMp/images.jpg"),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.8),
+                ],
+              ),
+            ),
+          ),
 
-                // Judul
-                const Text(
-                  "E-Commerce App",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent,
-                  ),
-                ),
-                const Text(
-                  "Silakan login untuk mulai belanja",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 40),
-
-                // Form Input Email
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: "Email",
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Form Input Password
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: "Password",
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                // Tombol Login
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            "LOGIN",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-
-                // ... kode bagian atas tetap sama ...
-                const SizedBox(height: 20),
-
-                // Tombol Pindah ke Halaman Register (VERSI PERBAIKAN)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          // 2. Konten Utama
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                child: Column(
                   children: [
-                    const Text("Belum punya akun? "),
-                    GestureDetector(
-                      onTap: () {
-                        // Navigasi ke RegisterPage
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterPage(),
+                    // Logo Aplikasi dengan Ring Cahaya
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.orangeAccent,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orangeAccent.withOpacity(0.5),
+                            blurRadius: 20,
+                            spreadRadius: 2,
                           ),
-                        );
-                      },
-                      child: const Text(
-                        "Daftar Sekarang",
-                        style: TextStyle(
-                          color: Colors.blueAccent,
-                          fontWeight: FontWeight.bold,
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.black,
+                        backgroundImage: const NetworkImage(
+                          "https://i.ibb.co.com/s9R975Sz/images.jpg",
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+
+                    // Nama Brand
+                    // Nama Brand
+                    const Text(
+                      "SPEED SHOP",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight:
+                            FontWeight.w900, // Ganti dari .black ke .w900
+                        color: Colors.white,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    Container(height: 3, width: 50, color: Colors.orangeAccent),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Premium Automotive Parts",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white70,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Kotak Input (Glassmorphism Effect)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTextField(
+                            controller: _emailController,
+                            hint: "Email Address",
+                            icon: Icons.email_outlined,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            controller: _passwordController,
+                            hint: "Password",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Tombol Login Mewah
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orangeAccent,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          elevation: 10,
+                          shadowColor: Colors.orangeAccent.withOpacity(0.5),
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.black,
+                              )
+                            : const Text(
+                                "MASUK",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+
+                    // Footer Register
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Belum bergabung? ",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const RegisterPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "Daftar Sekarang",
+                            style: TextStyle(
+                              color: Colors.orangeAccent,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Widget Pembantu untuk TextField Bergaya Automotive
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.orangeAccent),
+        filled: true,
+        fillColor: Colors.black.withOpacity(0.3),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.orangeAccent),
         ),
       ),
     );

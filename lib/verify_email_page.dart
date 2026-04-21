@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dashboard_page.dart'; // Wajib di-import agar bisa langsung pindah halaman
+import 'dashboard_page.dart';
 
 class VerifyEmailPage extends StatefulWidget {
   const VerifyEmailPage({super.key});
@@ -19,13 +19,11 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   void initState() {
     super.initState();
 
-    // 1. Cek apakah user sudah terverifikasi saat halaman dibuka
     isEmailVerified = FirebaseAuth.instance.currentUser!.emailVerified;
 
     if (!isEmailVerified) {
       sendVerificationEmail();
 
-      // 2. Cek status verifikasi secara otomatis setiap 3 detik
       timer = Timer.periodic(
         const Duration(seconds: 3),
         (_) => checkEmailVerified(),
@@ -35,112 +33,228 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
 
   @override
   void dispose() {
-    timer?.cancel(); // Hentikan timer saat keluar halaman
+    timer?.cancel();
     super.dispose();
   }
 
-  // Fungsi untuk mengecek status verifikasi di server Firebase
   Future checkEmailVerified() async {
     try {
-      // PAKSA Firebase untuk mengambil data terbaru dari server
       await FirebaseAuth.instance.currentUser?.reload();
 
       setState(() {
-        // Ambil status terbaru setelah reload
         isEmailVerified = FirebaseAuth.instance.currentUser!.emailVerified;
       });
 
       if (isEmailVerified) {
         timer?.cancel();
-        // Karena main.dart kadang lambat merespon, kita langsung atur
-        // pergerakan UI di bagian build() di bawah.
       }
     } catch (e) {
-      // Cegah aplikasi crash (layar merah) jika koneksi internet terputus
-      debugPrint("Menunggu jaringan / Gagal reload: $e");
+      debugPrint("Koneksi terputus: $e");
     }
   }
 
-  // Fungsi untuk mengirim ulang email verifikasi
   Future sendVerificationEmail() async {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       await user.sendEmailVerification();
 
       setState(() => canResendEmail = false);
-      await Future.delayed(
-        const Duration(seconds: 30),
-      ); // Tunggu 30 detik sebelum bisa klik lagi
-      setState(() => canResendEmail = true);
+      await Future.delayed(const Duration(seconds: 30));
+      if (mounted) setState(() => canResendEmail = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // JIKA SUDAH TERVERIFIKASI, LANGSUNG TAMPILKAN DASHBOARD
+    // REDIRECT KE DASHBOARD JIKA SUDAH OK
     if (isEmailVerified) {
       return const DashboardPage();
     }
 
-    // JIKA BELUM, TAMPILKAN HALAMAN INSTRUKSI
     return Scaffold(
-      appBar: AppBar(title: const Text('Verifikasi Email'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.email_outlined, size: 100, color: Colors.blue),
-            const SizedBox(height: 24),
-            const Text(
-              'Email verifikasi telah dikirim!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Silakan cek kotak masuk (atau folder spam) email Anda dan klik link yang tersedia.',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Tombol Kirim Ulang Email
-            ElevatedButton.icon(
-              onPressed: canResendEmail ? sendVerificationEmail : null,
-              icon: const Icon(Icons.email),
-              label: const Text('Kirim Ulang Email'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Tombol Manual Cek Verifikasi (Backup)
-            ElevatedButton.icon(
-              onPressed: checkEmailVerified,
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Saya Sudah Verifikasi'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Tombol Batal
-            TextButton(
-              onPressed: () => FirebaseAuth.instance.signOut(),
-              child: const Text('Batal & Keluar'),
-            ),
-          ],
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          "PIT STOP",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            color: Colors.white,
+          ),
         ),
+        centerTitle: true,
+      ),
+      body: Stack(
+        children: [
+          // 1. Background Gahar
+          Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: NetworkImage("https://i.ibb.co.com/W4qkjmMp/images.jpg"),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.5),
+                  Colors.black.withOpacity(0.9),
+                ],
+              ),
+            ),
+          ),
+
+          // 2. Konten Verifikasi
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                child: Column(
+                  children: [
+                    // Icon Email Neon
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.orangeAccent.withOpacity(0.1),
+                        border: Border.all(
+                          color: Colors.orangeAccent,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.orangeAccent.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.mark_email_unread_outlined,
+                        size: 80,
+                        color: Colors.orangeAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Teks Instruksi (Glassmorphism Box)
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "VERIFIKASI EMAIL",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            "Link aktivasi telah dikirim ke garasi email Anda. Silakan klik link tersebut untuk menyalakan mesin!",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Tombol Cek Manual
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        onPressed: checkEmailVerified,
+                        icon: const Icon(Icons.vpn_key_outlined),
+                        label: const Text(
+                          "SAYA SUDAH VERIFIKASI",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orangeAccent,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    // Tombol Kirim Ulang
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton.icon(
+                        onPressed: canResendEmail
+                            ? sendVerificationEmail
+                            : null,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(
+                          canResendEmail
+                              ? "KIRIM ULANG LINK"
+                              : "TUNGGU 30 DETIK...",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orangeAccent,
+                          side: const BorderSide(color: Colors.orangeAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+
+                    // Batal
+                    TextButton(
+                      onPressed: () => FirebaseAuth.instance.signOut(),
+                      child: const Text(
+                        "BATAL & KELUAR",
+                        style: TextStyle(
+                          color: Colors.white54,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
