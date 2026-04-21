@@ -77,7 +77,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
   Widget build(BuildContext context) {
     // REDIRECT KE DASHBOARD JIKA SUDAH OK
     if (isEmailVerified) {
-      return const DashboardPage();
+      return const HomeTab();
     }
 
     return Scaffold(
