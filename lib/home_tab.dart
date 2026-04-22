@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'product_detail_page.dart'; // <-- Tambahkan import ini
+import 'cart_page.dart';
 
 class HomeTab extends StatefulWidget {
   final String userRole;
@@ -37,7 +38,13 @@ class _HomeTabState extends State<HomeTab> {
                 Icons.shopping_cart_outlined,
                 color: Colors.orangeAccent,
               ),
-              onPressed: () => print("Ke Keranjang"),
+              onPressed: () {
+                // <-- UBAH BAGIAN INI
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartPage()),
+                );
+              },
             ),
         ],
       ),

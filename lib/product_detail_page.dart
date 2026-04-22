@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ProductDetailPage extends StatelessWidget {
@@ -9,6 +11,42 @@ class ProductDetailPage extends StatelessWidget {
     required this.productId,
     required this.productData,
   });
+
+  // Fungsi untuk menambah barang ke keranjang
+  Future<void> _addToCart(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('carts').add({
+        'userId': user.uid,
+        'productId': productId,
+        'productName': productData['name'] ?? 'Produk',
+        'price': productData['price'] ?? 'Rp 0',
+        'imageUrl': productData['imageUrl'] ?? '',
+        'quantity': 1, // Default jumlah masuk keranjang adalah 1
+        'addedAt': Timestamp.now(),
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Berhasil dimasukkan ke Keranjang! 🛒"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal menambah ke keranjang: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +73,6 @@ class ProductDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Gambar Produk
             Container(
               width: double.infinity,
               height: 300,
@@ -50,13 +87,11 @@ class ProductDetailPage extends StatelessWidget {
                 ),
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 2. Harga & Nama Barang
                   Text(
                     productData['price'] ?? 'Rp 0',
                     style: const TextStyle(
@@ -75,8 +110,6 @@ class ProductDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 15),
-
-                  // 3. Info Kategori & Stok
                   Row(
                     children: [
                       Chip(
@@ -100,8 +133,6 @@ class ProductDetailPage extends StatelessWidget {
                     ],
                   ),
                   const Divider(color: Colors.white24, height: 40),
-
-                  // 4. Profil Penjual (Mockup)
                   Row(
                     children: [
                       const CircleAvatar(
@@ -147,8 +178,6 @@ class ProductDetailPage extends StatelessWidget {
                     ],
                   ),
                   const Divider(color: Colors.white24, height: 40),
-
-                  // 5. Deskripsi Produk
                   const Text(
                     "Deskripsi Produk",
                     style: TextStyle(
@@ -162,23 +191,18 @@ class ProductDetailPage extends StatelessWidget {
                     description,
                     style: const TextStyle(color: Colors.white70, height: 1.5),
                   ),
-                  const SizedBox(
-                    height: 80,
-                  ), // Spasi kosong bawah biar ngga ketutup tombol
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
           ],
         ),
       ),
-
-      // 6. Tombol Bawah (Bottom Navigation khusus Checkout)
       bottomSheet: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         color: const Color(0xFF1E1E1E),
         child: Row(
           children: [
-            // Tombol Keranjang
             Expanded(
               flex: 1,
               child: OutlinedButton(
@@ -189,13 +213,9 @@ class ProductDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Dimasukkan ke Keranjang! 🛒"),
-                    ),
-                  );
-                },
+                onPressed: stock > 0
+                    ? () => _addToCart(context)
+                    : null, // <-- Panggil fungsi Add To Cart
                 child: const Icon(
                   Icons.add_shopping_cart,
                   color: Colors.orangeAccent,
@@ -203,7 +223,6 @@ class ProductDetailPage extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 15),
-            // Tombol Checkout
             Expanded(
               flex: 3,
               child: ElevatedButton(
@@ -217,14 +236,15 @@ class ProductDetailPage extends StatelessWidget {
                 ),
                 onPressed: stock > 0
                     ? () {
-                        // Nanti fungsi arahkan ke halaman Payment di sini
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text("Lanjut ke Pembayaran... 💳"),
+                            content: Text(
+                              "Fitur beli langsung segera hadir! 💳",
+                            ),
                           ),
                         );
                       }
-                    : null, // Disable jika stok habis
+                    : null,
                 child: Text(
                   stock > 0 ? "BELI SEKARANG" : "STOK HABIS",
                   style: const TextStyle(
