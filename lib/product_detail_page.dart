@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'checkout_page.dart';
 
 class ProductDetailPage extends StatelessWidget {
   final String productId;
@@ -203,6 +204,7 @@ class ProductDetailPage extends StatelessWidget {
         color: const Color(0xFF1E1E1E),
         child: Row(
           children: [
+            // TOMBOL KERANJANG (Diperbaiki)
             Expanded(
               flex: 1,
               child: OutlinedButton(
@@ -213,9 +215,7 @@ class ProductDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                onPressed: stock > 0
-                    ? () => _addToCart(context)
-                    : null, // <-- Panggil fungsi Add To Cart
+                onPressed: stock > 0 ? () => _addToCart(context) : null,
                 child: const Icon(
                   Icons.add_shopping_cart,
                   color: Colors.orangeAccent,
@@ -223,6 +223,8 @@ class ProductDetailPage extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 15),
+
+            // TOMBOL BELI SEKARANG (Diperbaiki)
             Expanded(
               flex: 3,
               child: ElevatedButton(
@@ -236,11 +238,22 @@ class ProductDetailPage extends StatelessWidget {
                 ),
                 onPressed: stock > 0
                     ? () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              "Fitur beli langsung segera hadir! 💳",
-                            ),
+                        // Format data produk ini menjadi List agar cocok dengan CheckoutPage
+                        List<Map<String, dynamic>> item = [
+                          {
+                            'productId': productId,
+                            'productName': productData['name'],
+                            'price': productData['price'],
+                            'imageUrl': productData['imageUrl'],
+                            'quantity': 1,
+                          },
+                        ];
+
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                CheckoutPage(checkoutItems: item),
                           ),
                         );
                       }

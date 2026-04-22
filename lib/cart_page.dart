@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'checkout_page.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -13,10 +14,10 @@ class _CartPageState extends State<CartPage> {
   final user = FirebaseAuth.instance.currentUser;
 
   // Menyimpan ID dokumen keranjang yang diceklis
-  List<String> _selectedCartIds = [];
+  final List<String> _selectedCartIds = [];
 
   // Data sementara untuk menghitung total harga
-  Map<String, int> _cartPrices = {};
+  final Map<String, int> _cartPrices = {};
 
   // Mengubah String "Rp 50.000" menjadi angka int 50000
   int _parsePrice(String priceStr) {
@@ -33,51 +34,34 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
-  // Fungsi Checkout Barang yang diceklis
+  // Fungsi Checkout Barang yang diceklis (Sudah disesuaikan ke CheckoutPage)
   Future<void> _checkoutSelectedItems() async {
     if (_selectedCartIds.isEmpty) return;
 
-    try {
-      String buyerName = user?.email?.split('@')[0] ?? 'Pembeli';
+    List<Map<String, dynamic>> itemsToCheckout = [];
 
-      // Loop semua barang yang diceklis
+    try {
+      // Kumpulkan data dari item yang diceklis
       for (String cartId in _selectedCartIds) {
         DocumentSnapshot cartDoc = await FirebaseFirestore.instance
             .collection('carts')
             .doc(cartId)
             .get();
+
         if (cartDoc.exists) {
           var data = cartDoc.data() as Map<String, dynamic>;
-          int qty = data['quantity'] ?? 1;
-          int priceInt = _parsePrice(data['price'] ?? '0');
-          int total = priceInt * qty;
-
-          // 1. Pindahkan ke koleksi transactions (Menunggu konfirmasi penjual)
-          await FirebaseFirestore.instance.collection('transactions').add({
-            'buyerId': user?.uid,
-            'buyerName': buyerName,
-            'productId': data['productId'],
-            'productName': data['productName'],
-            'quantity': qty,
-            'totalPrice': 'Rp $total',
-            'status': 'Menunggu', // Sesuai dengan transaction_page.dart penjual
-            'createdAt': Timestamp.now(),
-          });
-
-          // 2. Hapus dari keranjang
-          await _deleteCartItem(cartId);
+          data['cartId'] =
+              cartId; // Sertakan cartId agar nanti bisa dihapus di CheckoutPage
+          itemsToCheckout.add(data);
         }
       }
 
-      setState(() {
-        _selectedCartIds.clear();
-      });
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Checkout Berhasil! Menunggu Konfirmasi Penjual."),
-            backgroundColor: Colors.green,
+        // Pindah ke halaman Checkout dan bawa data barangnya
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CheckoutPage(checkoutItems: itemsToCheckout),
           ),
         );
       }
@@ -85,7 +69,7 @@ class _CartPageState extends State<CartPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Checkout Gagal: $e"),
+            content: Text("Gagal memproses checkout: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -128,12 +112,13 @@ class _CartPageState extends State<CartPage> {
                   .where('userId', isEqualTo: user!.uid)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(
                     child: CircularProgressIndicator(
                       color: Colors.orangeAccent,
                     ),
                   );
+                }
 
                 var docs = snapshot.data!.docs;
 
