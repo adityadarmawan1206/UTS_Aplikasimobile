@@ -9,52 +9,105 @@ class AddProductPage extends StatefulWidget {
 }
 
 class _AddProductPageState extends State<AddProductPage> {
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _imageController = TextEditingController();
-  String _selectedCategory = 'Mesin'; // Default kategori
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _imageUrlController = TextEditingController();
+  final TextEditingController _stockController = TextEditingController();
+  final TextEditingController _descriptionController =
+      TextEditingController(); // <-- Controller Deskripsi
+
+  String? _selectedCategory;
+  final List<String> _categories = ['Mesin', 'Oli', 'Ban', 'Lampu', 'Tools'];
   bool _isLoading = false;
 
-  final List<String> _categories = ['Mesin', 'Oli', 'Ban', 'Lampu', 'Tools'];
-
-  Future<void> _uploadProduct() async {
+  Future<void> _saveProduct() async {
     if (_nameController.text.isEmpty ||
         _priceController.text.isEmpty ||
-        _imageController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Semua data harus diisi!")));
+        _imageUrlController.text.isEmpty ||
+        _stockController.text.isEmpty ||
+        _descriptionController.text.isEmpty || // <-- Validasi deskripsi
+        _selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Harap isi semua kolom dan pilih kategori!"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Menambah data ke Firestore
+      int stockValue = int.tryParse(_stockController.text) ?? 0;
+
       await FirebaseFirestore.instance.collection('products').add({
-        'name': _nameController.text.trim(),
-        'price': "Rp ${_priceController.text.trim()}",
-        'imageUrl': _imageController.text.trim(),
+        'name': _nameController.text,
+        'price': _priceController.text,
+        'imageUrl': _imageUrlController.text,
         'category': _selectedCategory,
+        'stock': stockValue,
+        'description':
+            _descriptionController.text, // <-- Simpan deskripsi ke database
+        'soldCount': 0,
+        'isSoldOut': stockValue <= 0,
         'createdAt': Timestamp.now(),
       });
 
       if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Produk Berhasil Masuk Garasi!"),
+            content: Text("Barang berhasil mengaspal di toko! 🏁"),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Kembali ke Dashboard
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal: $e"), backgroundColor: Colors.redAccent),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal: $e"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _priceController.dispose();
+    _imageUrlController.dispose();
+    _stockController.dispose();
+    _descriptionController.dispose(); // <-- Dispose
+    super.dispose();
+  }
+
+  InputDecoration _customInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white54),
+      prefixIcon: Icon(icon, color: Colors.orangeAccent),
+      alignLabelWithHint: true, // Biar label di atas pas mode multiline
+      filled: true,
+      fillColor: const Color(0xFF1E1E1E),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.transparent),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.orangeAccent, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+      ),
+    );
   }
 
   @override
@@ -64,74 +117,94 @@ class _AddProductPageState extends State<AddProductPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         title: const Text(
-          "ADD NEW SPAREPART",
+          "TAMBAH BARANG",
           style: TextStyle(
             color: Colors.orangeAccent,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1,
           ),
         ),
         iconTheme: const IconThemeData(color: Colors.orangeAccent),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Icon Header
-            const Icon(
-              Icons.add_box_outlined,
-              size: 80,
-              color: Colors.orangeAccent,
+            TextField(
+              controller: _nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Nama Barang",
+                Icons.settings_suggest,
+              ),
+            ),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              dropdownColor: const Color(0xFF1E1E1E),
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Pilih Kategori",
+                Icons.category,
+              ),
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: Colors.orangeAccent,
+              ),
+              value: _selectedCategory,
+              items: _categories
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedCategory = v),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _priceController,
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Harga (ex: Rp 50.000)",
+                Icons.monetization_on,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _stockController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Jumlah Stok (ex: 25)",
+                Icons.numbers,
+              ),
             ),
             const SizedBox(height: 20),
 
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Column(
-                children: [
-                  _buildInputLabel("Nama Barang"),
-                  _buildTextField(
-                    _nameController,
-                    "Contoh: Knalpot Racing",
-                    Icons.shopping_bag_outlined,
-                  ),
-
-                  const SizedBox(height: 20),
-                  _buildInputLabel("Harga (Angka Saja)"),
-                  _buildTextField(
-                    _priceController,
-                    "Contoh: 1500000",
-                    Icons.payments_outlined,
-                    isNumber: true,
-                  ),
-
-                  const SizedBox(height: 20),
-                  _buildInputLabel("Link Foto Barang"),
-                  _buildTextField(
-                    _imageController,
-                    "https://link-gambar.com/foto.jpg",
-                    Icons.image_outlined,
-                  ),
-
-                  const SizedBox(height: 20),
-                  _buildInputLabel("Kategori"),
-                  _buildDropdown(),
-                ],
+            // --- INPUT DESKRIPSI BARU ---
+            TextField(
+              controller: _descriptionController,
+              maxLines: 4, // Supaya box-nya besar bisa nulis banyak
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Deskripsi Produk",
+                Icons.description,
               ),
             ),
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
-
-            // Tombol Submit
+            TextField(
+              controller: _imageUrlController,
+              keyboardType: TextInputType.url,
+              style: const TextStyle(color: Colors.white),
+              decoration: _customInputDecoration(
+                "Link Gambar (URL)",
+                Icons.image,
+              ),
+            ),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _uploadProduct,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orangeAccent,
                   foregroundColor: Colors.black,
@@ -139,89 +212,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
+                onPressed: _isLoading ? null : _saveProduct,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.black)
                     : const Text(
-                        "INPUT KE DATABASE",
+                        "SIMPAN BARANG",
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w900,
                           fontSize: 16,
                         ),
                       ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputLabel(String label) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8, left: 4),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    bool isNumber = false,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white30, fontSize: 14),
-        prefixIcon: Icon(icon, color: Colors.orangeAccent),
-        filled: true,
-        fillColor: Colors.black,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.orangeAccent),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategory,
-          dropdownColor: Colors.black,
-          isExpanded: true,
-          style: const TextStyle(color: Colors.white),
-          items: _categories.map((String category) {
-            return DropdownMenuItem(value: category, child: Text(category));
-          }).toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedCategory = newValue!;
-            });
-          },
         ),
       ),
     );

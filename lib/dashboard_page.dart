@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'home_tab.dart';
 import 'product_management_page.dart';
 import 'profile_tab.dart';
+import 'transaction_page.dart'; // <-- Tambahkan import ini
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -30,21 +31,27 @@ class _DashboardPageState extends State<DashboardPage> {
           .doc(user.uid)
           .get();
       if (doc.exists) {
-        setState(() {
-          userRole = doc.data()?['role'] ?? 'pembeli';
-        });
+        if (mounted) {
+          setState(() {
+            userRole = doc.data()?['role'] ?? 'pembeli';
+          });
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // List halaman berdasarkan Role
-    List<Widget> pages = [const HomeTab(), const ProfileTab()];
+    // List halaman dasar (Home dan Profile)
+    List<Widget> pages = [HomeTab(userRole: userRole), const ProfileTab()];
 
-    // Jika Penjual, tambahkan halaman Manajemen di tengah
+    // Jika user adalah Penjual, tambahkan halaman Kelola Stok dan Transaksi di tengah
     if (userRole == 'penjual') {
       pages.insert(1, const ProductManagementPage());
+      pages.insert(
+        2,
+        const TransactionPage(),
+      ); // <-- Halaman Transaksi ditambahkan
     }
 
     return Scaffold(
@@ -58,11 +65,16 @@ class _DashboardPageState extends State<DashboardPage> {
         onTap: (index) => setState(() => _selectedIndex = index),
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          if (userRole == 'penjual')
+          if (userRole == 'penjual') ...[
             const BottomNavigationBarItem(
               icon: Icon(Icons.inventory),
               label: 'Kelola Stok',
             ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long), // <-- Icon untuk tab Transaksi
+              label: 'Transaksi',
+            ),
+          ],
           const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profile',
